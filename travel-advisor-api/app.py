@@ -108,6 +108,15 @@ def chat(
     x_api_key: str | None = Header(default=None)
 ):
     expected_key = os.getenv("TRAVEL_API_TOKEN")
+    print("Token configured:", bool(expected_key))
+
+    print("Header received:", bool(x_api_key))
+
+    print(
+        "Tokens match:",
+        bool(expected_key and x_api_key)
+        and secrets.compare_digest(x_api_key, expected_key)
+    )
 
     if (
         not expected_key
