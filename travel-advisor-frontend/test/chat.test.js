@@ -54,3 +54,29 @@ test('handles missing config, malformed upstream replies, network failures and t
   globalThis.fetch = async () => { throw new DOMException('timeout', 'TimeoutError'); };
   assert.equal((await invoke({ message: 'Hello' })).code, 504);
 });
+
+test('forwards explicit costs and signed context and returns structured itinerary fields', async () => {
+  configure();
+  let sent;
+  const trip = { title: 'Rome', days: [{ day_number: 1 }] };
+  globalThis.fetch = async (_url, options) => { sent = JSON.parse(options.body); return { ok: true, json: async () => ({ reply: 'Rome', response_id: 'resp_plan', status: 'ready', trip, budget_details: { total: 720 }, tool_used: 'calculate_trip_budget', budget_context: 'signed', private_field: 'hidden' }) }; };
+  const result = await invoke({ message: 'Rome', previous_response_id: 'resp_old', expected_budget: { food: 180 }, budget_context: 'previous-signed' });
+  assert.deepEqual(sent.expected_budget, { food: 180 });
+  assert.equal(sent.budget_context, 'previous-signed');
+  assert.deepEqual(result.body.trip, trip);
+  assert.equal(result.body.budget_details.total, 720);
+  assert.equal(result.body.budget_context, 'signed');
+  assert.equal(result.body.private_field, undefined);
+});
+
+test('rejects invalid costs and differentiates quota exhaustion from rate limits', async () => {
+  configure();
+  for (const budget of [{ food: -1 }, { food: '180' }, { food: Infinity }, { unknown: 10 }, []]) {
+    assert.equal((await invoke({ message: 'Hello', expected_budget: budget })).code, 400);
+  }
+  globalThis.fetch = async () => ({ ok: false, status: 429, json: async () => ({ code: 'quota_exhausted', error: 'private detail' }) });
+  const result = await invoke({ message: 'Hello' });
+  assert.equal(result.code, 429);
+  assert.match(result.body.error, /credits/);
+  assert.ok(!result.body.error.includes('private detail'));
+});

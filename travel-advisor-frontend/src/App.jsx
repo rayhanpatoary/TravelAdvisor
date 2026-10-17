@@ -3,6 +3,7 @@ import { ArrowUpRight, Compass, MapPin, Sparkles, Route, Heart, AlertCircle } fr
 import Header from './components/Header.jsx';
 import ChatInput from './components/ChatInput.jsx';
 import ChatMessage from './components/ChatMessage.jsx';
+import BudgetInput from './components/BudgetInput.jsx';
 import './App.css';
 
 const welcome = { role: 'assistant', content: 'Hi there! I’m your AI travel advisor. Tell me where you’d like to go, and we’ll build a trip around what you love.' };
@@ -17,6 +18,8 @@ export default function App() {
   const [responseId, setResponseId] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [budgetValues, setBudgetValues] = useState({});
+  const [budgetContext, setBudgetContext] = useState(null);
   const activeRequest = useRef(null);
   const endRef = useRef(null);
   const inputRef = useRef(null);
@@ -26,10 +29,15 @@ export default function App() {
   function newTrip() {
     activeRequest.current?.abort(); activeRequest.current = null;
     setMessages([welcome]); setResponseId(null); setInput(''); setError(''); setLoading(false);
+    setBudgetValues({}); setBudgetContext(null);
     inputRef.current?.focus();
   }
   async function sendMessage(text = input) {
     if (activeRequest.current || !text.trim()) return;
+    const expectedBudget = Object.fromEntries(Object.entries(budgetValues).filter(([, value]) => value !== '').map(([key, value]) => [key, Number(value)]));
+    if (Object.values(expectedBudget).some((value) => !Number.isFinite(value) || value < 0 || value > 100000)) {
+      setError('Enter whole-trip EUR costs between 0 and 100,000.'); return;
+    }
     const message = text.trim();
     const controller = new AbortController();
     activeRequest.current = controller;
@@ -37,12 +45,16 @@ export default function App() {
     setMessages((current) => [...current, { role: 'user', content: message }]);
     try {
       const result = await fetch('/api/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, signal: controller.signal,
-        body: JSON.stringify({ message, ...(responseId ? { previous_response_id: responseId } : {}) }) });
+        body: JSON.stringify({ message, ...(responseId ? { previous_response_id: responseId } : {}),
+          ...(Object.keys(expectedBudget).length ? { expected_budget: expectedBudget } : {}),
+          ...(budgetContext ? { budget_context: budgetContext } : {}) }) });
       const data = await result.json();
       if (!result.ok) throw new Error(data.error || 'Something went wrong. Please try again.');
       if (typeof data.reply !== 'string' || typeof data.response_id !== 'string') throw new Error('We received an unexpected reply. Please try again.');
       if (activeRequest.current !== controller) return;
-      setMessages((current) => [...current, { role: 'assistant', content: data.reply }]); setResponseId(data.response_id);
+      setMessages((current) => [...current, { role: 'assistant', content: data.reply,
+        trip: data.status === 'ready' ? data.trip : null, budgetDetails: data.budget_details }]); setResponseId(data.response_id);
+      setBudgetContext(data.budget_context || null);
     } catch (failure) {
       if (controller.signal.aborted || activeRequest.current !== controller) return;
       setError(failure instanceof TypeError ? 'Connection lost. Check your internet connection and try again.' : failure instanceof SyntaxError ? 'The travel service is unavailable. Please try again.' : failure.message);
@@ -59,6 +71,7 @@ export default function App() {
     {!started && <div className="suggestions"><p>A little inspiration to get you going</p><div className="prompt-grid">{prompts.map((item) => <button key={item.place} className={`prompt-card ${item.style}`} onClick={() => sendMessage(item.prompt)} disabled={loading} aria-label={item.prompt}><span className="destination-art" aria-hidden="true">{item.icon}<span className="art-orbit"/></span><span className="destination-title">{item.place}<ArrowUpRight size={16}/></span><span className="destination-detail">{item.detail}</span><span className="prompt-text">{item.prompt}</span></button>)}</div></div>}
     {loading && <div className="thinking"><span/><span/><span/> Planning a little possibility…</div>}<div ref={endRef}/></div>
     {error && <div role="alert" className="error"><AlertCircle size={17}/>{error} Your message is ready to resend.</div>}
+    <BudgetInput values={budgetValues} onChange={(key, value) => setBudgetValues((current) => ({ ...current, [key]: value }))} disabled={loading}/>
     <ChatInput value={input} onChange={setInput} onSend={sendMessage} loading={loading} inputRef={inputRef}/><p className="disclaimer">A little AI inspiration, a lot of possibility. Always double-check travel details.</p></div>
     <aside><span className="aside-label">LESS SEARCHING. MORE DISCOVERING.</span><h2>Good trips start<br/>with a conversation.</h2><p>Consider this your blank map.<br/>We’ll fill in the good stuff together.</p><div className="benefit"><span><MapPin size={20}/></span><div><h3>Your kind of places</h3><p>Hidden gems and must-sees,<br/>matched to your interests.</p></div></div><div className="benefit"><span><Route size={20}/></span><div><h3>A plan that flows</h3><p>Thoughtful day-by-day itineraries<br/>with room to wander.</p></div></div><div className="benefit"><span><Heart size={20}/></span><div><h3>Made for you</h3><p>Your pace, your budget,<br/>your idea of a great trip.</p></div></div><div className="travel-note"><Sparkles size={18}/><p>Start with a place. Or a feeling.<br/><strong>We’ll take it from there.</strong></p></div></aside></section>
     <footer><Compass size={14}/> A little curiosity goes a long way.<span>MADE FOR YOUR NEXT ADVENTURE</span></footer>

@@ -1,0 +1,9 @@
+export function BudgetBreakdown({ budget, details }) {
+  if (!budget && !details) return null;
+  const costs = details?.costs || budget;
+  const format = (value) => new Intl.NumberFormat('en', { style: 'currency', currency: 'EUR' }).format(value);
+  return <section className="trip-budget"><h3>Trip budget <small>EUR · whole trip</small></h3><dl>{['accommodation', 'food', 'transportation', 'activities', 'extras', 'flights'].map((key) => <div key={key}><dt>{key}<small>{costs[key] == null ? 'Not included' : details?.sources?.[key] === 'user_supplied' ? 'User supplied · amount checked' : 'AI estimate'}</small></dt><dd>{costs[key] == null ? 'Unknown' : format(costs[key])}</dd></div>)}</dl>{details && <div className="budget-total"><strong>Total of known costs</strong><strong>{format(details.total)}</strong></div>}<p>Unknown flights are excluded. Estimates are not live prices; user-supplied figures are not independently verified.</p></section>;
+}
+export default function TripItinerary({ trip, budgetDetails }) {
+  return <div className="itinerary"><h2>{trip.title}</h2><p className="trip-meta">{trip.destination} · {trip.duration_days} {trip.duration_days === 1 ? 'day' : 'days'}</p><p>{trip.summary}</p><div className="trip-interests">{trip.interests.map((interest, index) => <span key={index}>{interest}</span>)}</div>{trip.days.map((day) => <section className="trip-day" key={day.day_number}><h3>Day {day.day_number}</h3>{['morning', 'afternoon', 'evening'].map((period) => <div className="day-period" key={period}><strong>{period}</strong><p>{day[period]}</p></div>)}<p><strong>Places</strong> · {day.places.join(' · ')}</p><p><strong>Food to try</strong> · {day.food_suggestion}</p></section>)}<BudgetBreakdown budget={trip.budget} details={budgetDetails}/><section className="trip-tips"><h3>Good to know</h3><ul>{trip.practical_tips.map((tip, index) => <li key={index}>{tip}</li>)}</ul></section></div>;
+}

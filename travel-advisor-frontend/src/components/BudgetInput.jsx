@@ -1,0 +1,4 @@
+const categories = ['accommodation', 'food', 'transportation', 'activities', 'extras', 'flights'];
+export default function BudgetInput({ values, onChange, disabled }) {
+  return <details className="budget-input"><summary>Add your costs <span>Optional · whole-trip EUR</span></summary><p>Enter costs you know. Blank categories remain AI estimates. These figures will be checked against the AI’s budget, not against booking prices.</p><div className="budget-fields">{categories.map((key) => <label key={key}>{key}<input aria-label={`${key} cost in EUR`} type="number" min="0" max="100000" step="0.01" placeholder="Unknown" value={values[key] ?? ''} disabled={disabled} onChange={(event) => onChange(key, event.target.value)}/></label>)}</div><p>To change a saved amount, enter its replacement here. Start a New Trip to clear all saved costs. Unknown flights are excluded from the total.</p></details>;
+}

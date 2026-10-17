@@ -1,6 +1,8 @@
 # AI Travel Advisor
 
-A responsive React chat app for planning personalized trips with the existing FastAPI backend. Includes suggested destinations, safe Markdown itineraries, conversation memory, loading and error states, and a New Trip reset.
+A responsive React chat app for planning personalized trips with the existing FastAPI backend. Includes suggested destinations, safe Markdown, structured day-by-day itineraries, a budget breakdown with user-supplied versus estimated figures, optional EUR cost inputs, conversation memory, loading/error states, and a New Trip reset.
+
+See the [full-stack README](../README.md) for the notebook feature comparison, backend setup, structured schemas, tool execution, budget verification, security limitations, Postman examples, and both existing Vercel projects.
 
 ## Stack and structure
 
@@ -46,9 +48,9 @@ Alternatively, install the Vercel CLI and run `vercel dev` in this directory to 
 
 ## How requests work
 
-The browser posts to its own `/api/chat`. The server validates the request, adds the private `X-API-Key` header, and forwards it to `TRAVEL_BACKEND_URL/chat`. Only `reply` and `response_id` are returned. Upstream error bodies and tokens are never returned or logged by this proxy. HTTPS is required for the backend URL.
+The browser posts to its own `/api/chat`. The server validates the request, adds the private `X-API-Key` header, and forwards it to `TRAVEL_BACKEND_URL/chat`. The legacy `reply` and `response_id` fields are retained; optional structured trip, status, budget, tool identity, and signed budget context fields are forwarded. Raw upstream errors and tokens are never returned or logged by this proxy. HTTPS is required in production. For the local Python backend only, `http://127.0.0.1:8000` is accepted in development outside Vercel.
 
-The initial request contains `{ "message": "I want to travel to Japan" }`. React stores the returned `response_id` in memory and sends it as `previous_response_id` on the next successful turn. New Trip clears that ID and messages and cancels any pending browser request. Refreshing also starts a fresh conversation. Conversation history is not saved in browser storage.
+The initial request contains `{ "message": "I want to travel to Japan" }`. React stores the returned `response_id` in memory and sends it as `previous_response_id` on the next successful turn. It also returns signed `budget_context` to preserve authoritative user costs, and sends optional explicit form costs as `expected_budget`. New Trip clears IDs, costs and messages and cancels any pending browser request. Refreshing also starts a fresh conversation. Conversation history is not saved in browser storage. Clearing a cost field does not remove an amount already saved in signed context; enter a replacement or start a New Trip.
 
 Failures restore the unsent message to the input so you can retry. Network failures, upstream authentication failures, rate limits, timeouts, and invalid responses have friendly error states. Failed requests do not advance the stored conversation ID. If a request finishes upstream after a connection failure, retrying can still incur another upstream request.
 
