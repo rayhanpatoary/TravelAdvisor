@@ -1,0 +1,9 @@
+{
+  "name": "travel-advisor-frontend",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": { "dev": "node server/dev.js", "dev:ui": "vite", "build": "vite build", "preview": "vite preview", "test": "node --test" },
+  "dependencies": { "lucide-react": "^0.468.0", "react": "^19.0.0", "react-dom": "^19.0.0", "react-markdown": "^10.0.0" },
+  "devDependencies": { "@vitejs/plugin-react": "^4.3.4", "vite": "^6.4.0" }
+}
