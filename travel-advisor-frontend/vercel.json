@@ -1,0 +1,4 @@
+{
+  "functions": { "api/chat.js": { "maxDuration": 60 } },
+  "routes": [{ "handle": "filesystem" }, { "src": "/api/.*", "status": 404 }, { "src": "/.*", "dest": "/index.html" }]
+}

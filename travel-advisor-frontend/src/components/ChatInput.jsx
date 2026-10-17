@@ -1,0 +1,4 @@
+import { Send, LoaderCircle } from 'lucide-react';
+export default function ChatInput({ value, onChange, onSend, loading, inputRef }) {
+  return <form className="composer" onSubmit={(event) => { event.preventDefault(); onSend(); }}><label className="sr-only" htmlFor="message">Tell us about your next trip</label><textarea ref={inputRef} id="message" rows={2} maxLength={8000} value={value} onChange={(event) => onChange(event.target.value)} placeholder="Where would you like to go?" onKeyDown={(event) => { if (event.key === 'Enter' && !event.shiftKey && !event.nativeEvent.isComposing) { event.preventDefault(); onSend(); } }}/><button className="send" type="submit" disabled={loading || !value.trim()} aria-label="Send message">{loading ? <LoaderCircle className="spin" size={20}/> : <Send size={20}/>}</button><span className="input-hint">Enter to send <span>·</span> Shift + Enter for a new line</span></form>;
+}
